@@ -1,0 +1,16 @@
+spin_version = "1"
+authors = ["Radu Matei <radu.matei@fermyon.com>"]
+description = ""
+name = "kv-explorer"
+trigger = { type = "http", base = "/" }
+version = "0.1.0"
+
+[[component]]
+id = "explorer"
+source = "explorer/target/spin-http-js.wasm"
+key_value_stores = ["default"]
+[component.trigger]
+route = "/..."
+[component.build]
+command = "npm run build"
+workdir = "explorer"
