@@ -1,0 +1,12 @@
+spin_version = "1"
+name = "{{project-name}}"
+trigger = { type = "http", base = "/" }
+version = "0.1.0"
+
+[[component]]
+source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.3.0/spin-http-js.wasm", digest = "sha256:c009e0d6f9e764d6628eb02515b7b029e44d53dcb49cc21a1ffed26be1db5bf3" }
+id = "kv-explorer"
+# add or remove stores you want to explore here
+key_value_stores = ["default"]
+[component.trigger]
+route = "/internal/kv-explorer/..."

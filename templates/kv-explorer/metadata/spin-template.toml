@@ -1,0 +1,12 @@
+manifest_version = "1"
+id = "kv-explorer"
+description = "Explore the contents of Spin KV stores"
+trigger_type = "http"
+tags = ["http", "kv"]
+
+[add_component]
+skip_files = ["spin.toml"]
+[add_component.snippets]
+component = "component.txt"
+
+[parameters]

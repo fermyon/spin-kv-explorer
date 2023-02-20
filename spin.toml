@@ -7,7 +7,7 @@ version = "0.1.0"
 
 [[component]]
 id = "explorer"
-source = "explorer/target/spin-http-js.wasm"
+source = "explorer/target/spin-kv-explorer.wasm"
 key_value_stores = ["default"]
 [component.trigger]
 route = "/..."

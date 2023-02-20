@@ -21,7 +21,7 @@ interface ListResult {
     keys: Array<string>
 }
 
-router.get("/api/stores/:store", async (req): Promise<HttpResponse> => {
+router.get("/internal/kv-explorer/api/stores/:store", async (req): Promise<HttpResponse> => {
     let store = req.params.store;
     console.log(`Listing keys from store: ${store}`);
 
@@ -39,7 +39,7 @@ router.get("/api/stores/:store", async (req): Promise<HttpResponse> => {
 });
 
 
-router.get("/api/stores/:store/keys/:key", async (req): Promise<HttpResponse> => {
+router.get("/internal/kv-explorer/api/stores/:store/keys/:key", async (req): Promise<HttpResponse> => {
     let store = req.params.store;
     let key = req.params.key;
     console.log(`Getting the value of key ${key} from store: ${store}`);
@@ -60,7 +60,7 @@ router.get("/api/stores/:store/keys/:key", async (req): Promise<HttpResponse> =>
     }
 });
 
-router.delete("/api/stores/:store/keys/:key", async req => {
+router.delete("/internal/kv-explorer/api/stores/:store/keys/:key", async req => {
     let store = req.params.store;
     let key = req.params.key;
 
@@ -81,7 +81,7 @@ router.delete("/api/stores/:store/keys/:key", async req => {
 });
 
 
-router.post("/api/stores/:store", async (req, extra) => {
+router.post("/internal/kv-explorer/api/stores/:store", async (req, extra) => {
     let input = JSON.parse(decoder.decode(extra.body)) as SetInput;
     console.log(`Adding new value in store ${req.params.store}. Input: ${input.key}. Value: ${input.value}`)
 
@@ -95,7 +95,7 @@ router.post("/api/stores/:store", async (req, extra) => {
     }
 });
 
-router.get('/', async () => {
+router.get('/internal/kv-explorer', async () => {
     let buf = encoder.encode(html()).buffer;
 
     return { status: 200, body: buf }

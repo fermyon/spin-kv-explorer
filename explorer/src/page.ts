@@ -14,7 +14,6 @@ export function html(): string {
 
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
-
 </head>
 
 <body>
@@ -70,7 +69,7 @@ export function html(): string {
 
 	<script>
 
-		fetch("/api/stores/default")
+		fetch("/internal/kv-explorer/api/stores/default")
 			.then((response) => response.json())
 			.then((data) => {
 				data.keys.forEach((item) => {
@@ -88,7 +87,7 @@ export function html(): string {
 
 			$(\`#\${key}View\`).click(function () {
 				var key = $(this).data("key");
-				fetch(\`/api/stores/default/keys/\${key}\`).then((response) => response.json()).then((data) => {
+				fetch(\`/internal/kv-explorer/api/stores/default/keys/\${key}\`).then((response) => response.json()).then((data) => {
 					let decoder = new TextDecoder();
 					let value = decoder.decode(new Uint8Array(data.value));
 					$("#valueContent").text(value);
@@ -99,7 +98,7 @@ export function html(): string {
 
 			$(\`#\${key}Delete\`).click(function () {
 				var key = $(this).data("key");
-				fetch(\`/api/stores/default/keys/\${key}\`, {
+				fetch(\`/internal/kv-explorer/api/stores/default/keys/\${key}\`, {
 					method: 'DELETE',
 				})
 					.then(() => {
@@ -125,7 +124,7 @@ export function html(): string {
 				key: key,
 				value: value
 			};
-			fetch("/api/stores/default", {
+			fetch("/internal/kv-explorer/api/stores/default", {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
