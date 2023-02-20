@@ -3,7 +3,6 @@ name: Test
 on:
   pull_request:
     branches: [main]
-env:
 jobs:
   test:
     name: Test
@@ -14,7 +13,7 @@ jobs:
       - name: Install nodejs
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 16
 
       - name: Install NPM dependencies for explorer
         shell: bash
@@ -22,7 +21,7 @@ jobs:
           cd explorer   
           npm install -
 
-        - name: Install Spin canary
+      - name: Install Spin canary
         uses: engineerd/configurator@v0.0.10
         with:
           name: "spin"
@@ -33,4 +32,3 @@ jobs:
         shell: bash
         run: |
           spin build
-

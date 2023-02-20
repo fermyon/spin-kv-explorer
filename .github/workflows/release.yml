@@ -24,7 +24,7 @@ jobs:
           cd explorer   
           npm install -
 
-        - name: Install Spin canary
+      - name: Install Spin canary
         uses: engineerd/configurator@v0.0.10
         with:
           name: "spin"
@@ -50,4 +50,3 @@ jobs:
           files: |
             explorer/target/spin-http-js.wasm
             checksums-${{ env.RELEASE_VERSION }}.txt
-
