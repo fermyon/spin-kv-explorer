@@ -31,6 +31,12 @@ jobs:
           url: "https://github.com/fermyon/spin/releases/download/canary/spin-canary-linux-amd64.tar.gz"
           pathInArchive: "spin"
 
+      - name: Install the Spin JS plugin
+        shell: bash
+        run: |
+          spin plugin update
+          spin plugin install js2wasm
+
       - name: Build application
         shell: bash
         run: |
