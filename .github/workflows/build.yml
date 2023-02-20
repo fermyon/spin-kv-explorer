@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           spin plugin update
-          spin plugin install js2wasm
+          spin plugin install js2wasm -y
 
       - name: Build application
         shell: bash
