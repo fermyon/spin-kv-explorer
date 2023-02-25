@@ -1,110 +1,57 @@
 import { HttpRequest, HttpResponse } from "@fermyon/spin-sdk";
+import { deleteKey, getKey, listKeys, setKey } from "./kv";
 import { html } from "./page";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-const router = utils.Router();
-
-interface SetInput {
-    key: string,
-    value: string
-}
-
-interface GetResult {
-    store: string,
-    key: string,
-    value: ArrayBuffer
-}
-
-interface ListResult {
-    store: string,
-    keys: Array<string>
-}
-
-router.get("/internal/kv-explorer/api/stores/:store", async (req): Promise<HttpResponse> => {
-    let store = req.params.store;
-    console.log(`Listing keys from store: ${store}`);
-
-    try {
-        let kv = spinSdk.kv.open(req.params.store);
-        let keys = kv.getKeys();
-        return {
-            status: 200,
-            body: encoder.encode(JSON.stringify({ store: store, keys: keys } as ListResult)).buffer
-        }
-    } catch (err) {
-        console.log(`Error: ${err}`);
-        return { status: 500 }
-    }
-});
 
 
-router.get("/internal/kv-explorer/api/stores/:store/keys/:key", async (req): Promise<HttpResponse> => {
-    let store = req.params.store;
-    let key = req.params.key;
-    console.log(`Getting the value of key ${key} from store: ${store}`);
-
-    try {
-        let kv = spinSdk.kv.open(store);
-        if (kv.exists(key)) {
-            return {
-                status: 200,
-                body: encoder.encode(JSON.stringify({ store: store, key: key, value: kv.get(key) } as GetResult)).buffer
-            }
-        } else {
-            return { status: 404 }
-        }
-    } catch (err) {
-        console.log(`Error: ${err}`);
-        return { status: 500 }
-    }
-});
-
-router.delete("/internal/kv-explorer/api/stores/:store/keys/:key", async req => {
-    let store = req.params.store;
-    let key = req.params.key;
-
-    console.log(`Deleting the value of key ${key} from store: ${store}`);
-
-    try {
-        let kv = spinSdk.kv.open(store);
-        if (kv.exists(key)) {
-            kv.delete(key);
-            return { status: 200 }
-        } else {
-            return { status: 404 }
-        }
-    } catch (err) {
-        console.log(`Error: ${err}`);
-        return { status: 500 }
-    }
-});
-
-
-router.post("/internal/kv-explorer/api/stores/:store", async (req, extra) => {
-    let input = JSON.parse(decoder.decode(extra.body)) as SetInput;
-    console.log(`Adding new value in store ${req.params.store}. Input: ${input.key}. Value: ${input.value}`)
-
-    try {
-        let kv = spinSdk.kv.open(req.params.store);
-        kv.set(input.key, input.value);
-        return { status: 200 }
-    } catch (err) {
-        console.log(`Error: ${err}`);
-        return { status: 500 }
-    }
-});
-
-router.get('/internal/kv-explorer', async () => {
-    let buf = encoder.encode(html()).buffer;
-
+function returnHtml(base: string) {
+    // Replace the base path to make sure APIs work correctly
+    let htmlContent = html().replace("let basepath = \"\";", `let basepath = \"${base}\";`)
+    let buf = encoder.encode(htmlContent).buffer;
     return { status: 200, body: buf }
-});
+}
 
-router.all("*", () => { return { status: 404 } });
+function setupRouter(base: string) {
+    const router = utils.Router();
 
-// handleRequest is the entrypoint to the Spin handler.
+    // Return HTML file for the viewer UI
+    router.get(base + "/kv-explorer", () => { return returnHtml(base) });
+
+    // List keys in the store
+    router.get(base + "/kv-explorer/api/stores/:store", ({ params }): HttpResponse => {
+        return listKeys(params.store)
+    });
+
+    // Delete key in store
+    router.delete(base + "/kv-explorer/api/stores/:store/keys/:key", ({ params }): HttpResponse => {
+        return deleteKey(params.store, params.key)
+    });
+
+    // Get the value of particular key
+    router.get(base + "/kv-explorer/api/stores/:store/keys/:key", ({ params }): HttpResponse => {
+        return getKey(params.store, params.key)
+    });
+
+    // Set value for a key
+    router.post(base + "/kv-explorer/api/stores/:store", ({ params }, req): HttpResponse => {
+        return setKey(params.store, req.body)
+    });
+
+    // If none of the routes above match, return a 404
+    router.all("*", () => { return { status: 404 } });
+    return router
+}
+
+// handleRequest is the entrypoint to the Spin handler
 export async function handleRequest(request: HttpRequest): Promise<HttpResponse> {
+
+    let basepath = spinSdk.config.get("basepath");
+
+    // Setup router with the base path from config or default to ""
+    const router = setupRouter(basepath);
+
     return await router.handle({
         method: request.method, url: request.uri
     }, { body: request.body });

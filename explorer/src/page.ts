@@ -68,8 +68,8 @@ export function html(): string {
 
 
 	<script>
-
-		fetch("/internal/kv-explorer/api/stores/default")
+		let basepath = "";
+		fetch(basepath + "/kv-explorer/api/stores/default")
 			.then((response) => response.json())
 			.then((data) => {
 				data.keys.forEach((item) => {
@@ -87,7 +87,7 @@ export function html(): string {
 
 			$(\`#\${key}View\`).click(function () {
 				var key = $(this).data("key");
-				fetch(\`/internal/kv-explorer/api/stores/default/keys/\${key}\`).then((response) => response.json()).then((data) => {
+				fetch(basepath + \`/kv-explorer/api/stores/default/keys/\${key}\`).then((response) => response.json()).then((data) => {
 					let decoder = new TextDecoder();
 					let value = decoder.decode(new Uint8Array(data.value));
 					$("#valueContent").text(value);
@@ -98,7 +98,7 @@ export function html(): string {
 
 			$(\`#\${key}Delete\`).click(function () {
 				var key = $(this).data("key");
-				fetch(\`/internal/kv-explorer/api/stores/default/keys/\${key}\`, {
+				fetch(basepath + \`/kv-explorer/api/stores/default/keys/\${key}\`, {
 					method: 'DELETE',
 				})
 					.then(() => {
@@ -124,7 +124,7 @@ export function html(): string {
 				key: key,
 				value: value
 			};
-			fetch("/internal/kv-explorer/api/stores/default", {
+			fetch(basepath + "/kv-explorer/api/stores/default", {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
