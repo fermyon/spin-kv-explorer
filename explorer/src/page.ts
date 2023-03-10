@@ -178,7 +178,7 @@ export function html(): string {
 					<a class="nav-link" href="../../">
 						<i class="fa-arrow-left fa-sharp fa-solid" aria-hidden="true"></i> 
 						Back to my app</a>
-					<a class="nav-link" href="./kv-explorer/">
+					<a class="nav-link" href="/internal/kv-explorer/">
 						<i class="fa-table-list fa-sharp fa-solid" aria-hidden="true"></i> 
 						Key Value Store</a>
 					<a class="nav-link nav-link-bottom" href="https://developer.fermyon.com/spin" target="_blank"> 
