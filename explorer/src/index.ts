@@ -41,7 +41,7 @@ router.get("/internal/kv-explorer/api/stores/:store", async (req): Promise<HttpR
 
 router.get("/internal/kv-explorer/api/stores/:store/keys/:key", async (req): Promise<HttpResponse> => {
     let store = req.params.store;
-    let key = req.params.key;
+    let key = decodeURIComponent(req.params.key);
     console.log(`Getting the value of key ${key} from store: ${store}`);
 
     try {
@@ -62,7 +62,7 @@ router.get("/internal/kv-explorer/api/stores/:store/keys/:key", async (req): Pro
 
 router.delete("/internal/kv-explorer/api/stores/:store/keys/:key", async req => {
     let store = req.params.store;
-    let key = req.params.key;
+    let key = decodeURIComponent(req.params.key);
 
     console.log(`Deleting the value of key ${key} from store: ${store}`);
 

@@ -1,6 +1,5 @@
 export function html(): string {
-	return `
-
+  return `
 	<!doctype html>
 	<html lang="en">
 	
@@ -150,6 +149,12 @@ export function html(): string {
 			.add-kv {
 				padding: 0 0 25px;
 			}
+			.modal-content {
+				color: #1e293b;
+			}
+			.table td {
+				vertical-align: middle;
+			}
 		</style>
 	</head>
 	
@@ -164,7 +169,7 @@ export function html(): string {
 					<path d="M91.3335 32.1285V28.7963C91.3335 28.7 91.4091 28.6242 91.5054 28.6242H96.8245C96.9207 28.6242 96.9964 28.5485 96.9964 28.4521V14.8927C96.9964 14.7963 96.9207 14.7206 96.8245 14.7206H91.5054C91.4091 14.7206 91.3335 14.6449 91.3335 14.5485V11.2163C91.3335 11.1199 91.4091 11.0442 91.5054 11.0442H106.73C106.826 11.0442 106.902 11.1199 106.902 11.2163V14.5485C106.902 14.6449 106.826 14.7206 106.73 14.7206H101.415C101.318 14.7206 101.243 14.7963 101.243 14.8927V28.4487C101.243 28.5451 101.318 28.6208 101.415 28.6208H106.73C106.826 28.6208 106.902 28.6965 106.902 28.7929V32.1251C106.902 32.2215 106.826 32.2972 106.73 32.2972H91.5054C91.4091 32.2972 91.3335 32.2215 91.3335 32.1251V32.1285Z" fill="white"/>
 					<path d="M125.276 24.934V11.2163C125.276 11.1199 125.352 11.0442 125.448 11.0442H128.945C129.041 11.0442 129.117 11.1199 129.117 11.2163V32.1251C129.117 32.2215 129.041 32.2972 128.945 32.2972H125.341C125.28 32.2972 125.221 32.2628 125.19 32.2077L116.632 16.7206C116.546 16.5657 116.309 16.6277 116.309 16.8032V32.1251C116.309 32.2215 116.233 32.2972 116.137 32.2972H112.64C112.544 32.2972 112.469 32.2215 112.469 32.1251V11.2163C112.469 11.1199 112.544 11.0442 112.64 11.0442H117.354C117.416 11.0442 117.475 11.0786 117.506 11.1337L124.953 25.0132C125.039 25.1716 125.276 25.1096 125.276 24.9306V24.934Z" fill="white"/>
 					</svg>   
-				<h1>Key Value Store Explorer</h1>             
+				<h1>Key Value Store Explorer</h1>
 			</div>
 			<!-- Nav -->
 			<div id="n-container">
@@ -173,7 +178,7 @@ export function html(): string {
 					<a class="nav-link" href="../../">
 						<i class="fa-arrow-left fa-sharp fa-solid" aria-hidden="true"></i> 
 						Back to my app</a>
-					<a class="nav-link" href="./kv-explorer/">
+					<a class="nav-link" href="/internal/kv-explorer/">
 						<i class="fa-table-list fa-sharp fa-solid" aria-hidden="true"></i> 
 						Key Value Store</a>
 					<a class="nav-link nav-link-bottom" href="https://developer.fermyon.com/spin" target="_blank"> 
@@ -264,17 +269,29 @@ export function html(): string {
 						insert(item);
 					});
 				});
+
+			// Use this to generate unique and valid ids for keys
+			const simpleHash = str => {
+				let hash = 0;
+				for (let i = 0; i < str.length; i++) {
+				  const char = str.charCodeAt(i);
+				  hash = (hash << 5) - hash + char;
+				  hash &= hash; // Convert to 32bit integer
+				}
+				return new Uint32Array([hash])[0].toString(36);
+			  };
 	
 			function insert(key) {
+				let hashedKey = simpleHash(key);
 				$("#kv > tbody:first").append(\`
-			<tr id="\${key}">
+			<tr id="\${hashedKey}">
 				<td>\${key} </td> 
-					<td><a href="#" id="\${key}View" class="btn btn-outline-secondary view-btn" data-key="\${key}"> View </a>  <a href="#" id="\${key}Delete" class="btn btn-outline-secondary delete-btn" data-key="\${key}">Delete</a ></td>
+					<td><a href="#" id="\${hashedKey}View" class="btn btn-outline-secondary view-btn" data-key="\${key}"> View </a>  <a href="#" id="\${hashedKey}Delete" class="btn btn-outline-secondary delete-btn" data-key="\${key}">Delete</a ></td>
 						</tr>\`);
 	
-				$(\`#\${key}View\`).click(function () {
+				$(\`#\${hashedKey}View\`).click(function () {
 					var key = $(this).data("key");
-					fetch(\`/internal/kv-explorer/api/stores/default/keys/\${key}\`).then((response) => response.json()).then((data) => {
+					fetch(\`/internal/kv-explorer/api/stores/default/keys/\${encodeURIComponent(key)}\`).then((response) => response.json()).then((data) => {
 						let decoder = new TextDecoder();
 						let value = decoder.decode(new Uint8Array(data.value));
 						$("#valueContent").text(value);
@@ -283,20 +300,20 @@ export function html(): string {
 				});
 	
 	
-				$(\`#\${key}Delete\`).click(function () {
+				$(\`#\${hashedKey}Delete\`).click(function () {
 					var key = $(this).data("key");
-					fetch(\`/internal/kv-explorer/api/stores/default/keys/\${key}\`, {
+					fetch(\`/internal/kv-explorer/api/stores/default/keys/\${encodeURIComponent(key)}\`, {
 						method: 'DELETE',
 					})
 						.then(() => {
-							remove(key)
+							remove(hashedKey)
 						})
 				});
 	
 			}
 	
-			function remove(key) {
-				$(\`#kv #\${key}\`).remove();
+			function remove(hashedKey) {
+				$(\`#kv #\${hashedKey}\`).remove();
 			}
 	
 			$("#add").click(function () {
@@ -328,5 +345,5 @@ export function html(): string {
 	
 	</body>
 	</html>
-`
+`;
 }
