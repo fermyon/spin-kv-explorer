@@ -291,7 +291,7 @@ export function html(): string {
 	
 				$(\`#\${hashedKey}View\`).click(function () {
 					var key = $(this).data("key");
-					fetch(\`/internal/kv-explorer/api/stores/default/keys/\${key}\`).then((response) => response.json()).then((data) => {
+					fetch(\`/internal/kv-explorer/api/stores/default/keys/\${encodeURIComponent(key)}\`).then((response) => response.json()).then((data) => {
 						let decoder = new TextDecoder();
 						let value = decoder.decode(new Uint8Array(data.value));
 						$("#valueContent").text(value);
@@ -302,7 +302,7 @@ export function html(): string {
 	
 				$(\`#\${hashedKey}Delete\`).click(function () {
 					var key = $(this).data("key");
-					fetch(\`/internal/kv-explorer/api/stores/default/keys/\${key}\`, {
+					fetch(\`/internal/kv-explorer/api/stores/default/keys/\${encodeURIComponent(key)}\`, {
 						method: 'DELETE',
 					})
 						.then(() => {
