@@ -5,12 +5,24 @@ name = "kv-explorer"
 trigger = { type = "http", base = "/" }
 version = "0.1.0"
 
+# [[component]]
+# id = "explorer"
+# source = "explorer/target/spin-kv-explorer.wasm"
+# key_value_stores = ["default"]
+# [component.trigger]
+# route = "/..."
+# [component.build]
+# command = "npm run build"
+# workdir = "explorer"
+
 [[component]]
-id = "explorer"
-source = "explorer/target/spin-kv-explorer.wasm"
+id = "golang-explorer"
+source = "golang-explorer/main.wasm"
+allowed_http_hosts = []
 key_value_stores = ["default"]
 [component.trigger]
 route = "/..."
 [component.build]
-command = "npm run build"
-workdir = "explorer"
+command = "tinygo build -target=wasi -gc=leaking -no-debug -o main.wasm main.go"
+workdir = "golang-explorer"
+watch = ["**/*.go", "go.mod", "spin.toml"]
