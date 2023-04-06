@@ -1,5 +1,5 @@
 [[component]]
-source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.7.0/spin-kv-explorer.wasm", digest = "sha256:4d4985cb076161509641a7e6ad782202ae2d934f3c4ad8dfa1e37d220e9ed128 " }
+source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.7.0/spin-kv-explorer.wasm", digest = "sha256:31a7ad7d7f72cdfa77855e4fe1a607bcdd0129d1ca4bbeff599e6ec09c8ce93c" }
 id = "kv-explorer"
 # add or remove stores you want to explore here
 key_value_stores = ["default"]
