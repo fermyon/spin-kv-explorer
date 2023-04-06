@@ -41,6 +41,10 @@ route = "/internal/kv-explorer/..."
 
 You can now access the explorer in your browser at the route `/internal/kv-explorer`.
 
+### Credentials
+
+The explorer will use the default store to persist the credentials to access the UI and the API. If no values are set, the first invocation will set a randomly generated pair of username and password under the `credentials` key, with the value following the `user:password` format. On the first run, the values will be printed in the logs, and they can be used to log in and change them (creating a new `credentials` value will override the existing value).
+
 ### Known limitations
 
 - currently, the explorer can only be used with Spin's default key/value store. When this will be configurable, this component will support working with custom stores as well.
