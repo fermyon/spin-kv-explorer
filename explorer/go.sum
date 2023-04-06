@@ -1,0 +1,4 @@
+github.com/julienschmidt/httprouter v1.3.0 h1:U0609e9tgbseu3rBINet9P48AI/D3oJs4dN7jwJOQ1U=
+github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
+github.com/radu-matei/spin/sdk/go v0.0.0-20230405120805-2028b6d9eef9 h1:nXB3gmOf5UC69l8/uGku7Z20RvNFj5C5tPjkjZ03oy8=
+github.com/radu-matei/spin/sdk/go v0.0.0-20230405120805-2028b6d9eef9/go.mod h1:yb8lGesopgj/GwPzLPATxcOeqWZT/HjrzEFfwbztAXE=

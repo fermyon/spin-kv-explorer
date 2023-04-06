@@ -1,15 +1,18 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/subtle"
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"log"
+	"math/big"
 	"net/http"
+	"strings"
 
-	spinhttp "github.com/fermyon/spin/sdk/go/http"
+	spin "github.com/fermyon/spin/sdk/go/http"
 	kv "github.com/fermyon/spin/sdk/go/key_value"
-	"github.com/julienschmidt/httprouter"
 )
 
 // At build time, read the contents of index.html and embed it in the `Html` variable.
@@ -39,20 +42,21 @@ type ListResult struct {
 
 func init() {
 	// The entry point to a Spin HTTP request using the Go SDK.
-	spinhttp.Handle(func(w http.ResponseWriter, r *http.Request) {
+	spin.Handle(func(w http.ResponseWriter, r *http.Request) {
 		serve(w, r)
 	})
 }
 
 // Setup the router and handle the incoming request.
 func serve(w http.ResponseWriter, r *http.Request) {
-	user, pass, err := credsFromKV()
+	user, pass, err := GetCredentials()
 	if err != nil {
+		log.Printf("Error getting credentials from KV store: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	router := httprouter.New()
+	router := spin.NewRouter()
 
 	// Access to the list, get, create, and delete KV pairs endpoints is behind basic auth,
 	// with the credentials stored in the KV store itself.
@@ -61,7 +65,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	router.DELETE("/internal/kv-explorer/api/stores/:store/keys/:key", BasicAuth(DeleteKeyHandler, user, pass))
 	router.POST("/internal/kv-explorer/api/stores/:store", BasicAuth(AddKeyHandler, user, pass))
 
-	// We want to users to access the UI without basic auth in order to set the credentials.
+	// We want to allow users to access the UI without basic auth in order to set the credentials.
 	// We rely on the browser automatically asking for the basic auth credentials to send to the request.
 	router.GET("/internal/kv-explorer", UIHandler)
 
@@ -69,17 +73,17 @@ func serve(w http.ResponseWriter, r *http.Request) {
 }
 
 // UIHandler is the HTTP handler for the UI of the application.
-func UIHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+func UIHandler(w http.ResponseWriter, _ *http.Request, _ spin.Params) {
 	w.Write([]byte(Html))
 }
 
 // ListKeysHandler is the HTTP handler for a list keys request.
-func ListKeysHandler(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func ListKeysHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
 	storeName := p.ByName("store")
-	log.Printf("Listing keys from store: %s", storeName)
 
 	store, err := kv.Open(storeName)
 	if err != nil {
+		log.Printf("ERROR: cannot open store: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -87,6 +91,7 @@ func ListKeysHandler(w http.ResponseWriter, _ *http.Request, p httprouter.Params
 
 	keys, err := kv.GetKeys(store)
 	if err != nil {
+		log.Printf("ERROR: cannot list keys: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -96,13 +101,13 @@ func ListKeysHandler(w http.ResponseWriter, _ *http.Request, p httprouter.Params
 }
 
 // GetKeyHandler is the HTTP handler for a get key request.
-func GetKeyHandler(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func GetKeyHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
 	storeName := p.ByName("store")
 	key := p.ByName("key")
-	log.Printf("Getting the value of key %s from store: %s", key, storeName)
 
 	store, err := kv.Open(storeName)
 	if err != nil {
+		log.Printf("ERROR: cannot open store: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -110,38 +115,37 @@ func GetKeyHandler(w http.ResponseWriter, _ *http.Request, p httprouter.Params) 
 
 	value, err := kv.Get(store, key)
 	if err != nil {
+		log.Printf("ERROR: cannot get key: %v", err)
 		w.WriteHeader(http.StatusNotFound)
-	} else {
-		res := GetResult{Store: storeName, Key: key, Value: value}
-		json.NewEncoder(w).Encode(res)
 	}
+
+	res := GetResult{Store: storeName, Key: key, Value: value}
+	json.NewEncoder(w).Encode(res)
+
 }
 
 // DeleteKeyHandler is the HTTP handler for a delete key request.
-func DeleteKeyHandler(w http.ResponseWriter, _ *http.Request, p httprouter.Params) {
+func DeleteKeyHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
 	storeName := p.ByName("store")
 	key := p.ByName("key")
-	log.Printf("Deleting the value of key %s from store: %s", key, storeName)
 
 	store, err := kv.Open(storeName)
 	if err != nil {
+		log.Printf("ERROR: cannot open store: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer kv.Close(store)
 
-	exists, err := kv.Exists(store, key)
+	err = kv.Delete(store, key)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	} else if exists {
-		_ = kv.Delete(store, key)
-	} else {
+		log.Printf("ERROR: cannot delete key: %v", err)
 		w.WriteHeader(http.StatusNotFound)
 	}
 }
 
 // AddKeyHandler is the HTTP handler for an add key/value pair request.
-func AddKeyHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func AddKeyHandler(w http.ResponseWriter, r *http.Request, p spin.Params) {
 	storeName := p.ByName("store")
 
 	var input SetRequest
@@ -149,10 +153,10 @@ func AddKeyHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	log.Printf("Adding new value in store %s. Input: %s. Value: %s", storeName, input.Key, input.Value)
 
 	store, err := kv.Open(storeName)
 	if err != nil {
+		log.Printf("ERROR: cannot open store: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -160,13 +164,14 @@ func AddKeyHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 
 	err = kv.Set(store, input.Key, []byte(input.Value))
 	if err != nil {
+		log.Printf("ERROR: cannot add key: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 // BasicAuth is a middleware that checks for basic auth credentials in a request.
-func BasicAuth(h httprouter.Handle, requiredUser, requiredPassword string) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func BasicAuth(h spin.RouterHandle, requiredUser, requiredPassword string) spin.RouterHandle {
+	return func(w http.ResponseWriter, r *http.Request, ps spin.Params) {
 		// Get the Basic Authentication credentials
 		user, password, hasAuth := r.BasicAuth()
 
@@ -174,6 +179,7 @@ func BasicAuth(h httprouter.Handle, requiredUser, requiredPassword string) httpr
 			// Delegate request to the given handle
 			h(w, r, ps)
 		} else {
+			log.Printf("ERROR: Unauthenticated request")
 			// Request Basic Authentication otherwise
 			w.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -181,21 +187,65 @@ func BasicAuth(h httprouter.Handle, requiredUser, requiredPassword string) httpr
 	}
 }
 
-func credsFromKV() (string, string, error) {
+// CredsOrDefault checks the KV store for a `credentials` key, and expects
+// the value to be `username:password`. If a value is not found, this function
+// will generate a random pair and log it once.
+func GetCredentials() (string, string, error) {
 	store, err := kv.Open("default")
 	if err != nil {
-		return "", "", err
-	}
-	user, err := kv.Get(store, "user")
-	if err != nil {
-		return "", "", err
-	}
-	pass, err := kv.Get(store, "password")
-	if err != nil {
-		return "", "", err
+		log.Printf("ERROR: cannot open store: %v", err)
+		return "", "", fmt.Errorf("error opening store: %v", err)
 	}
 
-	return string(user), string(pass), nil
+	exists, err := kv.Exists(store, "credentials")
+	if err != nil {
+		return "", "", fmt.Errorf("cannot check if credentials exists: %v", err)
+	}
+
+	if !exists {
+		defaultUser, err := GenerateRandomString(10)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to generate random string for user: %v", err)
+		}
+		defaultPassword, err := GenerateRandomString(10)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to generate random string for password: %v", err)
+		}
+
+		kv.Set(store, "credentials", []byte(defaultUser+":"+defaultPassword))
+
+		log.Printf("Default user: %v", defaultUser)
+		log.Printf("Default password: %v", defaultPassword)
+		log.Printf("This is a randomly generated username and password pair. To change it, please add a `credentials` key in the default store with the value `username:password`. If you delete the credential pair, the next request will generate a new random set.")
+
+		return defaultUser, defaultPassword, nil
+	}
+
+	creds, err := kv.Get(store, "credentials")
+	if err != nil {
+		return "", "", fmt.Errorf("cannot get credentials pair from store: %v", err)
+	}
+
+	split := strings.Split(string(creds), ":")
+	return split[0], split[1], nil
+}
+
+// GenerateRandomString returns a securely generated random string.
+// It will return an error if the system's secure random
+// number generator fails to function correctly, in which
+// case the caller should not continue.
+func GenerateRandomString(n int) (string, error) {
+	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
+	ret := make([]byte, n)
+	for i := 0; i < n; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			return "", err
+		}
+		ret[i] = letters[num.Int64()]
+	}
+
+	return string(ret), nil
 }
 
 func main() {}
