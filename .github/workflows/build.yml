@@ -10,16 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install nodejs
-        uses: actions/setup-node@v3
+      - name: Setup TinyGo
+        uses: rajatjindal/setup-actions/tinygo@v0.0.1
+        id: setup
         with:
-          node-version: 16
-
-      - name: Install NPM dependencies for explorer
-        shell: bash
-        run: |
-          cd explorer   
-          npm install -
+          version: "v0.27.0"
 
       - name: Install Spin canary
         uses: engineerd/configurator@v0.0.10
@@ -27,12 +22,6 @@ jobs:
           name: "spin"
           url: "https://github.com/fermyon/spin/releases/download/canary/spin-canary-linux-amd64.tar.gz"
           pathInArchive: "spin"
-
-      - name: Install the Spin JS plugin
-        shell: bash
-        run: |
-          spin plugin update
-          spin plugin install js2wasm -y
 
       - name: Build application
         shell: bash
