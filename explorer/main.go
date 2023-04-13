@@ -56,18 +56,24 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// componentRoute is the base url of the spin component
+	componentRoute := r.Header.Get("Spin-Component-Route")
+	if componentRoute == "" {
+		componentRoute = "/"
+	}
+
 	router := spin.NewRouter()
 
 	// Access to the list, get, create, and delete KV pairs endpoints is behind basic auth,
 	// with the credentials stored in the KV store itself.
-	router.GET("/internal/kv-explorer/api/stores/:store", BasicAuth(ListKeysHandler, user, pass))
-	router.GET("/internal/kv-explorer/api/stores/:store/keys/:key", BasicAuth(GetKeyHandler, user, pass))
-	router.DELETE("/internal/kv-explorer/api/stores/:store/keys/:key", BasicAuth(DeleteKeyHandler, user, pass))
-	router.POST("/internal/kv-explorer/api/stores/:store", BasicAuth(AddKeyHandler, user, pass))
+	router.GET(componentRoute+"/api/stores/:store", BasicAuth(ListKeysHandler, user, pass))
+	router.GET(componentRoute+"/api/stores/:store/keys/:key", BasicAuth(GetKeyHandler, user, pass))
+	router.DELETE(componentRoute+"/api/stores/:store/keys/:key", BasicAuth(DeleteKeyHandler, user, pass))
+	router.POST(componentRoute+"/api/stores/:store", BasicAuth(AddKeyHandler, user, pass))
 
 	// We want to allow users to access the UI without basic auth in order to set the credentials.
 	// We rely on the browser automatically asking for the basic auth credentials to send to the request.
-	router.GET("/internal/kv-explorer", UIHandler)
+	router.GET(componentRoute, UIHandler)
 
 	router.ServeHTTP(w, r)
 }
