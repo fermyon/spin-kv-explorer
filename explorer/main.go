@@ -9,11 +9,15 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"os"
 	"strings"
 
 	spin "github.com/fermyon/spin/sdk/go/http"
 	kv "github.com/fermyon/spin/sdk/go/key_value"
 )
+
+var KV_STORE_CREDENTIALS_KEY string = "kv-credentials"
+var SKIP_AUTH_ENV string = "SPIN_APP_KV_SKIP_AUTH"
 
 // At build time, read the contents of index.html and embed it in the `Html` variable.
 // The goal for this is having a single wasm binary that can be added using `spin add`.
@@ -172,6 +176,15 @@ func AddKeyHandler(w http.ResponseWriter, r *http.Request, p spin.Params) {
 // BasicAuth is a middleware that checks for basic auth credentials in a request.
 func BasicAuth(h spin.RouterHandle, requiredUser, requiredPassword string) spin.RouterHandle {
 	return func(w http.ResponseWriter, r *http.Request, ps spin.Params) {
+
+		// This scenario is only intended for the local scenario, and skips basic authentication
+		// when the environment variable is set.
+		val, ok := os.LookupEnv(SKIP_AUTH_ENV)
+		if ok && val == "1" {
+			h(w, r, ps)
+			return
+		}
+
 		// Get the Basic Authentication credentials
 		user, password, hasAuth := r.BasicAuth()
 
@@ -197,7 +210,7 @@ func GetCredentials() (string, string, error) {
 		return "", "", fmt.Errorf("error opening store: %v", err)
 	}
 
-	exists, err := kv.Exists(store, "credentials")
+	exists, err := kv.Exists(store, KV_STORE_CREDENTIALS_KEY)
 	if err != nil {
 		return "", "", fmt.Errorf("cannot check if credentials exists: %v", err)
 	}
@@ -212,7 +225,7 @@ func GetCredentials() (string, string, error) {
 			return "", "", fmt.Errorf("failed to generate random string for password: %v", err)
 		}
 
-		kv.Set(store, "credentials", []byte(defaultUser+":"+defaultPassword))
+		kv.Set(store, KV_STORE_CREDENTIALS_KEY, []byte(defaultUser+":"+defaultPassword))
 
 		log.Printf("Default user: %v", defaultUser)
 		log.Printf("Default password: %v", defaultPassword)
@@ -221,7 +234,7 @@ func GetCredentials() (string, string, error) {
 		return defaultUser, defaultPassword, nil
 	}
 
-	creds, err := kv.Get(store, "credentials")
+	creds, err := kv.Get(store, KV_STORE_CREDENTIALS_KEY)
 	if err != nil {
 		return "", "", fmt.Errorf("cannot get credentials pair from store: %v", err)
 	}

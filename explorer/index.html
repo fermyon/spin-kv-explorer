@@ -295,7 +295,7 @@
 		fetch("/internal/kv-explorer/api/stores/default")
 			.then((response) => response.json())
 			.then((data) => {
-				data.keys.forEach((item) => {
+				data.keys.sort().forEach((item) => {
 					insert(item);
 				});
 			});

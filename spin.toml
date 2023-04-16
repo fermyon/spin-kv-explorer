@@ -16,4 +16,4 @@ route = "/..."
 [component.build]
 command = "tinygo build -target=wasi -gc=leaking -o main.wasm main.go"
 workdir = "explorer"
-# watch = ["**/*.go", "go.mod", "spin.toml"]
+watch = ["**/*.go", "go.mod"]
