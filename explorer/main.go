@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	spin "github.com/fermyon/spin/sdk/go/http"
 	kv "github.com/fermyon/spin/sdk/go/key_value"
@@ -77,8 +78,6 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	spinRoute = getBasePath(r.Header)
-	log.Println("spin route: ", spinRoute)
-
 	router := spin.NewRouter()
 
 	// Access to the list, get, create, and delete KV pairs endpoints is behind basic auth,
@@ -114,7 +113,9 @@ func ListKeysHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
 	}
 	defer kv.Close(store)
 
+	start := time.Now()
 	keys, err := kv.GetKeys(store)
+	log.Printf("LIST operation took: %s", time.Since(start))
 	if err != nil {
 		log.Printf("ERROR: cannot list keys: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -138,7 +139,9 @@ func GetKeyHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
 	}
 	defer kv.Close(store)
 
+	start := time.Now()
 	value, err := kv.Get(store, key)
+	log.Printf("GET operation took %s", time.Since(start))
 	if err != nil {
 		log.Printf("ERROR: cannot get key: %v", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -162,7 +165,9 @@ func DeleteKeyHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
 	}
 	defer kv.Close(store)
 
+	start := time.Now()
 	err = kv.Delete(store, key)
+	log.Printf("DELETE operation took %s", time.Since(start))
 	if err != nil {
 		log.Printf("ERROR: cannot delete key: %v", err)
 		w.WriteHeader(http.StatusNotFound)
@@ -187,7 +192,9 @@ func AddKeyHandler(w http.ResponseWriter, r *http.Request, p spin.Params) {
 	}
 	defer kv.Close(store)
 
+	start := time.Now()
 	err = kv.Set(store, input.Key, []byte(input.Value))
+	log.Printf("SET operation took %s", time.Since(start))
 	if err != nil {
 		log.Printf("ERROR: cannot add key: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
