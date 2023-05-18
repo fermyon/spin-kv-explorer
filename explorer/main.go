@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	spin "github.com/fermyon/spin/sdk/go/http"
@@ -23,7 +24,7 @@ var SKIP_AUTH_ENV string = "SPIN_APP_KV_SKIP_AUTH"
 // The goal for this is having a single wasm binary that can be added using `spin add`.
 
 //go:embed index.html
-var Html string
+var HTMLTemplate string
 
 // SetRequest is the request body sent by the client to set set a new key/value pair.
 type SetRequest struct {
@@ -51,6 +52,21 @@ func init() {
 	})
 }
 
+// spinRoute is the base url of the spin component
+var spinRoute string
+
+func getBasePath(h http.Header) string {
+	base := h.Get("Spin-Base-Path")
+	component := h.Get("Spin-Component-Route")
+	root := path.Join(base, component)
+
+	// add trailing `/`
+	if root[len(root)-1] != '/' {
+		root = root + "/"
+	}
+	return root
+}
+
 // Setup the router and handle the incoming request.
 func serve(w http.ResponseWriter, r *http.Request) {
 	user, pass, err := GetCredentials()
@@ -60,25 +76,30 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	spinRoute = getBasePath(r.Header)
+	log.Println("spin route: ", spinRoute)
+
 	router := spin.NewRouter()
 
 	// Access to the list, get, create, and delete KV pairs endpoints is behind basic auth,
 	// with the credentials stored in the KV store itself.
-	router.GET("/internal/kv-explorer/api/stores/:store", BasicAuth(ListKeysHandler, user, pass))
-	router.GET("/internal/kv-explorer/api/stores/:store/keys/:key", BasicAuth(GetKeyHandler, user, pass))
-	router.DELETE("/internal/kv-explorer/api/stores/:store/keys/:key", BasicAuth(DeleteKeyHandler, user, pass))
-	router.POST("/internal/kv-explorer/api/stores/:store", BasicAuth(AddKeyHandler, user, pass))
+	router.GET(path.Join(spinRoute, "/api/stores/:store"), BasicAuth(ListKeysHandler, user, pass))
+	router.GET(path.Join(spinRoute, "/api/stores/:store/keys/:key"), BasicAuth(GetKeyHandler, user, pass))
+	router.DELETE(path.Join(spinRoute, "/api/stores/:store/keys/:key"), BasicAuth(DeleteKeyHandler, user, pass))
+	router.POST(path.Join(spinRoute, "/api/stores/:store"), BasicAuth(AddKeyHandler, user, pass))
 
 	// We want to allow users to access the UI without basic auth in order to set the credentials.
 	// We rely on the browser automatically asking for the basic auth credentials to send to the request.
-	router.GET("/internal/kv-explorer", UIHandler)
+	router.GET(spinRoute, UIHandler)
 
 	router.ServeHTTP(w, r)
 }
 
 // UIHandler is the HTTP handler for the UI of the application.
 func UIHandler(w http.ResponseWriter, _ *http.Request, _ spin.Params) {
-	w.Write([]byte(Html))
+	out := strings.ReplaceAll(HTMLTemplate, "{{.SpinRoute}}", spinRoute)
+	w.Write([]byte(out))
+
 }
 
 // ListKeysHandler is the HTTP handler for a list keys request.

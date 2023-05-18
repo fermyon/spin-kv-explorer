@@ -62,5 +62,3 @@ The explorer will use the default store to persist the credentials to access the
 ### Known limitations
 
 - the explorer can only be used with Spin's default key/value store. When this will be configurable, this component will support working with custom stores as well.
-
-- the route cannot now be changed: `/internal/kv-explorer/...`. See [this issue](https://github.com/radu-matei/spin-kv-explorer/issues/1).

@@ -193,10 +193,7 @@
 		<div id="n-container">
 			<nav id="navbar">
 				<header></header>
-				<a class="nav-link" href="../../">
-					<i class="fa-arrow-left fa-sharp fa-solid" aria-hidden="true"></i>
-					Back to my app</a>
-				<a class="nav-link" href="/internal/kv-explorer/">
+				<a class="nav-link" href="{{.SpinRoute}}">
 					<i class="fa-table-list fa-sharp fa-solid" aria-hidden="true"></i>
 					Key Value Store</a>
 				<a class="nav-link nav-link-bottom" href="https://developer.fermyon.com/spin" target="_blank">
@@ -292,7 +289,7 @@
 		integrity="sha512-6UofPqm0QupIL0kzS/UIzekR73/luZdC6i/kXDbWnLOJoqwklBK6519iUnShaYceJ0y4FaiPtX/hRnV/X/xlUQ=="
 		crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	<script>
-		fetch("/internal/kv-explorer/api/stores/default")
+		fetch("{{.SpinRoute}}api/stores/default")
 			.then((response) => response.json())
 			.then((data) => {
 				data.keys.sort().forEach((item) => {
@@ -315,13 +312,13 @@
 			let hashedKey = simpleHash(key);
 			$("#kv > tbody:first").append(`
 			<tr id="${hashedKey}">
-				<td>${key} </td> 
+				<td>${key} </td>
 					<td><a href="#" id="${hashedKey}View" class="btn btn-outline-secondary view-btn" data-key="${key}"> View </a>  <a href="#" id="${hashedKey}Delete" class="btn btn-outline-secondary delete-btn" data-key="${key}">Delete</a ></td>
 						</tr>`);
 
 			$(`#${hashedKey}View`).click(function () {
 				var key = $(this).data("key");
-				fetch(`/internal/kv-explorer/api/stores/default/keys/${encodeURIComponent(key)}`).then((response) => response.json()).then((data) => {
+				fetch(`{{.SpinRoute}}api/stores/default/keys/${encodeURIComponent(key)}`).then((response) => response.json()).then((data) => {
 					let value = atob(data.value);
 					$("#valueContent").text(value);
 					$("#viewModal").modal("show");
@@ -331,7 +328,7 @@
 
 			$(`#${hashedKey}Delete`).click(function () {
 				var key = $(this).data("key");
-				fetch(`/internal/kv-explorer/api/stores/default/keys/${encodeURIComponent(key)}`, {
+				fetch(`{{.SpinRoute}}api/stores/default/keys/${encodeURIComponent(key)}`, {
 					method: 'DELETE',
 				})
 					.then(() => {
@@ -357,7 +354,7 @@
 				key: key,
 				value: value
 			};
-			fetch("/internal/kv-explorer/api/stores/default", {
+			fetch("{{.SpinRoute}}api/stores/default", {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
