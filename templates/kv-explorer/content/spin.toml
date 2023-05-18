@@ -4,7 +4,7 @@ trigger = { type = "http", base = "/" }
 version = "0.1.0"
 
 [[component]]
-source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.8.0/spin-kv-explorer.wasm", digest = "sha256:e1667e756004000913d869b72db600fb2675f4358c6f0cc2581dfa869e56073c" }
+source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.9.0/spin-kv-explorer.wasm", digest = "sha256:07f5f0b8514c14ae5830af0f21674fd28befee33cd7ca58bc0a68103829f2f9c" }
 id = "kv-explorer"
 # add or remove stores you want to explore here
 key_value_stores = ["default"]
