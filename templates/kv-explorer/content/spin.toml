@@ -1,12 +1,22 @@
-spin_version = "1"
-name = "{{project-name}}"
-trigger = { type = "http", base = "/" }
-version = "0.1.0"
+spin_manifest_version = "2"
 
+<<<<<<< Updated upstream
 [[component]]
 source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.9.0/spin-kv-explorer.wasm", digest = "sha256:07f5f0b8514c14ae5830af0f21674fd28befee33cd7ca58bc0a68103829f2f9c" }
 id = "kv-explorer"
+=======
+[application]
+name = "{{project-name}}"
+version = "0.1.0"
+authors = ["{{authors}}"]
+description = "{{project-description}}"
+
+[[trigger.http]]
+route = "/internal/kv-explorer/..."
+component = "{{project-name | kebab_case}}"
+
+[component.{{project-name | kebab_case}}]
+source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.6.0/spin-kv-explorer.wasm", digest = "sha256:38110bc277a393cdfb1a885a0fd56923d47314b2086399d1e3bbcb6daa1f04ad" }
+>>>>>>> Stashed changes
 # add or remove stores you want to explore here
 key_value_stores = ["default"]
-[component.trigger]
-route = "/internal/kv-explorer/..."
