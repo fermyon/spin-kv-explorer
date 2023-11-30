@@ -7,7 +7,7 @@ This is a simple Spin component for exploring the contents of key/value stores.
 First, configure the template:
 
 ```bash
-$ spin templates install --git https://github.com/radu-matei/spin-kv-explorer
+$ spin templates install --git https://github.com/fermyon/spin-kv-explorer
 Copying remote template source
 Installing template kv-explorer...
 Installed 1 template(s)
@@ -31,7 +31,7 @@ This will create the following component in your `spin.toml`:
 
 ```toml
 [[component]]
-source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/<latest-release>/spin-kv-explorer.wasm", digest = "sha256:aaa" }
+source = { url = "https://github.com/fermyon/spin-kv-explorer/releases/download/<latest-release>/spin-kv-explorer.wasm", digest = "sha256:aaa" }
 id = "kv-explorer"
 # add or remove stores you want to explore here
 key_value_stores = ["default"]
