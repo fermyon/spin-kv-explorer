@@ -1,19 +1,24 @@
-spin_version = "1"
-authors = ["Radu Matei <radu.matei@fermyon.com>"]
-description = ""
+spin_manifest_version = 2
+
+[application]
 name = "kv-explorer"
-trigger = { type = "http", base = "/" }
 version = "0.1.0"
+authors = ["Radu Matei <radu.matei@fermyon.com>"]
 
+[application.trigger.http]
+base = "/"
 
-[[component]]
-id = "golang-explorer"
-source = "explorer/main.wasm"
-allowed_http_hosts = []
-key_value_stores = ["default"]
-[component.trigger]
+[[trigger.http]]
+id = "trigger-golang-explorer"
+component = "golang-explorer"
 route = "/internal/kv-explorer/..."
-[component.build]
+
+[component.golang-explorer]
+source = "explorer/main.wasm"
+allowed_outbound_hosts = ["redis://*:*", "mysql://*:*", "postgres://*:*"]
+key_value_stores = ["default"]
+
+[component.golang-explorer.build]
 command = "tinygo build -target=wasi -gc=leaking -o main.wasm main.go"
 workdir = "explorer"
 watch = ["**/*.go", "go.mod"]
