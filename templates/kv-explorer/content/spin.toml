@@ -1,12 +1,18 @@
-spin_version = "1"
+spin_manifest_version = 2
+
+[application]
 name = "{{project-name}}"
-trigger = { type = "http", base = "/" }
 version = "0.1.0"
 
-[[component]]
-source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.9.0/spin-kv-explorer.wasm", digest = "sha256:07f5f0b8514c14ae5830af0f21674fd28befee33cd7ca58bc0a68103829f2f9c" }
-id = "kv-explorer"
-# add or remove stores you want to explore here
-key_value_stores = ["default"]
-[component.trigger]
+[application.trigger.http]
+base = "/"
+
+[[trigger.http]]
+id = "trigger-kv-explorer"
+component = "kv-explorer"
 route = "/internal/kv-explorer/..."
+
+[component.kv-explorer]
+source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.9.0/spin-kv-explorer.wasm", digest = "sha256:07f5f0b8514c14ae5830af0f21674fd28befee33cd7ca58bc0a68103829f2f9c" }
+allowed_outbound_hosts = ["redis://*:*", "mysql://*:*", "postgres://*:*"]
+key_value_stores = ["default"]
