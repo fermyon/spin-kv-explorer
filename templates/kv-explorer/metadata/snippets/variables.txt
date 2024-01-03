@@ -1,0 +1,2 @@
+kv_explorer_user = { required = true }
+kv_explorer_password = { required = true }
