@@ -146,7 +146,7 @@ func GetKeyHandler(w http.ResponseWriter, _ *http.Request, p spinhttp.Params) {
 	value, err := store.Get(string(safeKey))
 	logger.Printf("GET operation took %s", time.Since(start))
 	if err != nil {
-		logger.Printf("ERROR: cannot get key: ", err)
+		logger.Printf("ERROR: cannot get key: %v", err)
 		w.WriteHeader(http.StatusNotFound)
 	}
 
