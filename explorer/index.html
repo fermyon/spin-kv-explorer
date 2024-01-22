@@ -338,6 +338,23 @@
 			$("#kv > tbody:first").empty();
 		}
 
+		// Encode a string, so that it can safely be used as part of the URI on GET and DELETE methods
+		// A base64 encoded string representation (using `-` instead of `/`) of the UTF-8 encoded byte representation of the string
+		// That should support most character sets - including this guy: 🎅🏻
+		// Similar methods needs to be implemented by the receiving api
+		function encodeSafeKey(key) {
+			let encoder = new TextEncoder();
+			let encodedKey = encoder.encode(key)
+			let binString = String.fromCodePoint(...encodedKey)
+			let base64Key = btoa(binString)
+			return base64Key.replaceAll("/", "-")
+		}
+
+		function base64ToBytes(base64) {
+				const binString = atob(base64);
+				return Uint8Array.from(binString, (m) => m.codePointAt(0));
+		}
+
 		function insert(key) {
 			let hashedKey = simpleHash(key);
 			$("#kv > tbody:first").append(`
@@ -347,18 +364,19 @@
 						</tr>`);
 
 			$(`#${hashedKey}View`).click(function () {
-				var key = $(this).data("key");
-				fetch(`{{.SpinRoute}}api/stores/${storeLabel}/keys/${encodeURIComponent(key)}`).then((response) => response.json()).then((data) => {
-					let value = atob(data.value);
+				let key = $(this).data("key");
+				let safeKey = encodeSafeKey(key);
+				fetch(`{{.SpinRoute}}api/stores/${storeLabel}/keys/${safeKey}`).then((response) => response.json()).then((data) => {
+					let value = new TextDecoder().decode(base64ToBytes(data.value));
 					$("#valueContent").text(value);
 					$("#viewModal").modal("show");
 				});
 			});
 
-
 			$(`#${hashedKey}Delete`).click(function () {
-				var key = $(this).data("key");
-				fetch(`{{.SpinRoute}}api/stores/${storeLabel}/keys/${encodeURIComponent(key)}`, {
+				let key = $(this).data("key");
+				let safeKey = encodeSafeKey(key);
+				fetch(`{{.SpinRoute}}api/stores/${storeLabel}/keys/${safeKey}`, {
 					method: 'DELETE',
 				})
 					.then(() => {
