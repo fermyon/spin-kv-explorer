@@ -210,7 +210,16 @@
 
 				<div class="row">
 					<div class="col-md-9">
-
+						<div class="table-wrap">
+							<div class="row mb-2 add-kv">
+								<div class="col-md-6">
+									<input id="storeLabel" type="text" class="form-control mt-2" placeholder="Store Label">
+								</div>
+								<div class="col-md-2">
+									<button id="load-store" class="btn btn-outline-primary mt-2" title="Load Store">Load</button>
+								</div>
+							</div>
+						</div>
 						<div class="table-wrap">
 							<div class="row mb-2 add-kv">
 								<div class="col-md-6">
@@ -252,7 +261,7 @@
 							<code>GET</code> &mdash; read the docs for <a
 								href="https://developer.fermyon.com/spin/kv-store#storing-and-retrieving-data-from-your-default-keyvalue-store"
 								target="_blank">Storing &amp; Retrieving Data From Your
-								Default Key/Value Store</a> for guidance and examples.
+								Key/Value Stores</a> for guidance and examples.
 						</p>
 					</div>
 				</div>
@@ -289,13 +298,30 @@
 		integrity="sha512-6UofPqm0QupIL0kzS/UIzekR73/luZdC6i/kXDbWnLOJoqwklBK6519iUnShaYceJ0y4FaiPtX/hRnV/X/xlUQ=="
 		crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	<script>
-		fetch("{{.SpinRoute}}api/stores/default")
-			.then((response) => response.json())
-			.then((data) => {
-				data.keys.sort().forEach((item) => {
-					insert(item);
+		let storeLabel = "";
+
+		$("#load-store").click(function() {
+			removeAllPairs();
+			storeLabel = $("#storeLabel").val();
+			if (storeLabel.length == 0) {
+				alert("Store label must not be empty");
+				return
+			}
+			// Catch an Internal error and alert that store does not exist
+			fetch(`{{.SpinRoute}}api/stores/${storeLabel}`)
+				.then((response) => {
+					if (response.status == 401) {
+						alert(`Access denied to store with label "${storeLabel}." Ensure the app is linked to the store with this label and that the label has been specified in the Spin manifest (spin.toml).`);
+						return
+					}
+					return response.json()
+				})
+				.then((data) => {
+					data.keys.sort().forEach((item) => {
+						insert(item);
+					});
 				});
-			});
+		})
 
 		// Use this to generate unique and valid ids for keys
 		const simpleHash = str => {
@@ -308,6 +334,10 @@
 			return new Uint32Array([hash])[0].toString(36);
 		};
 
+		function removeAllPairs() {
+			$("#kv > tbody:first").empty();
+		}
+
 		function insert(key) {
 			let hashedKey = simpleHash(key);
 			$("#kv > tbody:first").append(`
@@ -318,7 +348,7 @@
 
 			$(`#${hashedKey}View`).click(function () {
 				var key = $(this).data("key");
-				fetch(`{{.SpinRoute}}api/stores/default/keys/${encodeURIComponent(key)}`).then((response) => response.json()).then((data) => {
+				fetch(`{{.SpinRoute}}api/stores/${storeLabel}/keys/${encodeURIComponent(key)}`).then((response) => response.json()).then((data) => {
 					let value = atob(data.value);
 					$("#valueContent").text(value);
 					$("#viewModal").modal("show");
@@ -328,7 +358,7 @@
 
 			$(`#${hashedKey}Delete`).click(function () {
 				var key = $(this).data("key");
-				fetch(`{{.SpinRoute}}api/stores/default/keys/${encodeURIComponent(key)}`, {
+				fetch(`{{.SpinRoute}}api/stores/${storeLabel}/keys/${encodeURIComponent(key)}`, {
 					method: 'DELETE',
 				})
 					.then(() => {
@@ -354,7 +384,7 @@
 				key: key,
 				value: value
 			};
-			fetch("{{.SpinRoute}}api/stores/default", {
+			fetch(`{{.SpinRoute}}api/stores/${storeLabel}`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
