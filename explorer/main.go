@@ -3,18 +3,19 @@ package main
 import (
 	"crypto/subtle"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 	"time"
 
+	spinhttp "github.com/fermyon/spin/sdk/go/v2/http"
+	kv "github.com/fermyon/spin/sdk/go/v2/kv"
 	"github.com/fermyon/spin/sdk/go/v2/variables"
-
-	spin "github.com/fermyon/spin/sdk/go/v2/http"
-	"github.com/fermyon/spin/sdk/go/v2/kv"
 )
 
 var KV_STORE_CREDENTIALS_KEY string = "kv_credentials"
@@ -45,9 +46,12 @@ type ListResult struct {
 	Keys  []string `json:"keys"`
 }
 
+var logger *log.Logger
+
 func init() {
 	// The entry point to a Spin HTTP request using the Go SDK.
-	spin.Handle(func(w http.ResponseWriter, r *http.Request) {
+	spinhttp.Handle(func(w http.ResponseWriter, r *http.Request) {
+		logger = log.New(os.Stderr, "", log.LstdFlags)
 		serve(w, r)
 	})
 }
@@ -81,7 +85,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	spinRoute = getBasePath(r.Header)
-	router := spin.NewRouter()
+	router := spinhttp.NewRouter()
 
 	// Access to the list, get, create, and delete KV pairs endpoints is behind basic auth,
 	// with the credentials stored in the config store.
@@ -98,29 +102,28 @@ func serve(w http.ResponseWriter, r *http.Request) {
 }
 
 // UIHandler is the HTTP handler for the UI of the application.
-func UIHandler(w http.ResponseWriter, _ *http.Request, _ spin.Params) {
+func UIHandler(w http.ResponseWriter, _ *http.Request, _ spinhttp.Params) {
 	out := strings.ReplaceAll(HTMLTemplate, "{{.SpinRoute}}", spinRoute)
 	w.Write([]byte(out))
 
 }
 
 // ListKeysHandler is the HTTP handler for a list keys request.
-func ListKeysHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
+func ListKeysHandler(w http.ResponseWriter, _ *http.Request, p spinhttp.Params) {
 	storeName := p.ByName("store")
 
 	store, err := kv.OpenStore(storeName)
 	if err != nil {
-		fmt.Printf("ERROR: cannot open store: %v\n", err)
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		logger.Printf("ERROR: cannot open store: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer store.Close()
 
 	start := time.Now()
 	keys, err := store.GetKeys()
-	fmt.Printf("LIST operation took: %s\n", time.Since(start))
+	logger.Printf("LIST operation took: %s\n", time.Since(start))
 	if err != nil {
-		fmt.Printf("ERROR: cannot list keys: %v\n", err)
+		logger.Printf("ERROR: cannot list keys: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -130,23 +133,23 @@ func ListKeysHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
 }
 
 // GetKeyHandler is the HTTP handler for a get key request.
-func GetKeyHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
+func GetKeyHandler(w http.ResponseWriter, _ *http.Request, p spinhttp.Params) {
 	storeName := p.ByName("store")
 	key := p.ByName("key")
+	safeKey := DecodeSafeKey(key)
 
 	store, err := kv.OpenStore(storeName)
 	if err != nil {
-		fmt.Printf("ERROR: cannot open store: %v\n", err)
+		logger.Printf("ERROR: cannot open store: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer store.Close()
 
 	start := time.Now()
-	value, err := store.Get(key)
-	fmt.Printf("GET operation took %s\n", time.Since(start))
+	value, err := store.Get(string(safeKey))
+	logger.Printf("GET operation took %s\n", time.Since(start))
 	if err != nil {
-		fmt.Printf("ERROR: cannot get key: %v\n", err)
+		logger.Printf("ERROR: cannot get key: %v\n", err)
 		w.WriteHeader(http.StatusNotFound)
 	}
 
@@ -156,29 +159,29 @@ func GetKeyHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
 }
 
 // DeleteKeyHandler is the HTTP handler for a delete key request.
-func DeleteKeyHandler(w http.ResponseWriter, _ *http.Request, p spin.Params) {
+func DeleteKeyHandler(w http.ResponseWriter, _ *http.Request, p spinhttp.Params) {
 	storeName := p.ByName("store")
 	key := p.ByName("key")
+	safeKey := DecodeSafeKey(key)
 
 	store, err := kv.OpenStore(storeName)
 	if err != nil {
-		fmt.Printf("ERROR: cannot open store: %v\n", err)
+		logger.Printf("ERROR: cannot open store: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer store.Close()
 
 	start := time.Now()
-	err = store.Delete(key)
-	fmt.Printf("DELETE operation took %s\n", time.Since(start))
+	err = store.Delete(string(safeKey))
+	logger.Printf("DELETE operation took %s\n", time.Since(start))
 	if err != nil {
-		fmt.Printf("ERROR: cannot delete key: %v\n", err)
+		logger.Printf("ERROR: cannot delete key: %v\n", err)
 		w.WriteHeader(http.StatusNotFound)
 	}
 }
 
 // AddKeyHandler is the HTTP handler for an add key/value pair request.
-func AddKeyHandler(w http.ResponseWriter, r *http.Request, p spin.Params) {
+func AddKeyHandler(w http.ResponseWriter, r *http.Request, p spinhttp.Params) {
 	storeName := p.ByName("store")
 
 	var input SetRequest
@@ -189,17 +192,16 @@ func AddKeyHandler(w http.ResponseWriter, r *http.Request, p spin.Params) {
 
 	store, err := kv.OpenStore(storeName)
 	if err != nil {
-		fmt.Printf("ERROR: cannot open store: %v\n", err)
+		logger.Printf("ERROR: cannot open store: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer store.Close()
 
 	start := time.Now()
 	err = store.Set(input.Key, []byte(input.Value))
-	fmt.Printf("SET operation took %s\n", time.Since(start))
+	logger.Printf("SET operation took %s\n", time.Since(start))
 	if err != nil {
-		fmt.Printf("ERROR: cannot add key: %v\n", err)
+		logger.Printf("ERROR: cannot add key: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -210,8 +212,8 @@ func ShouldSkipAuth() bool {
 }
 
 // BasicAuth is a middleware that checks for basic auth credentials in a request.
-func BasicAuth(h spin.RouterHandle, requiredUser, requiredPassword string) spin.RouterHandle {
-	return func(w http.ResponseWriter, r *http.Request, ps spin.Params) {
+func BasicAuth(h spinhttp.RouterHandle, requiredUser, requiredPassword string) spinhttp.RouterHandle {
+	return func(w http.ResponseWriter, r *http.Request, ps spinhttp.Params) {
 		// This scenario is only intended for the local scenario, and skips basic authentication
 		// when the environment variable is set.
 		if ShouldSkipAuth() {
@@ -220,6 +222,7 @@ func BasicAuth(h spin.RouterHandle, requiredUser, requiredPassword string) spin.
 			return
 		}
 
+		logger.Printf("Authenticating")
 		// Get the Basic Authentication credentials
 		user, password, hasAuth := r.BasicAuth()
 
@@ -227,7 +230,7 @@ func BasicAuth(h spin.RouterHandle, requiredUser, requiredPassword string) spin.
 			// Delegate request to the given handle
 			h(w, r, ps)
 		} else {
-			fmt.Printf("ERROR: Unauthenticated request\n")
+			logger.Printf("ERROR: Unauthenticated request\n")
 			// Request Basic Authentication otherwise
 			w.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -248,6 +251,16 @@ func GetCredentials() (string, string, error) {
 
 	split := strings.Split(string(creds), ":")
 	return split[0], split[1], nil
+}
+
+// Decodes the URI safe code, sent by the client, for GET and DELETE operations
+func DecodeSafeKey(key string) []byte {
+	base64Key := strings.Replace(key, "-", "/", -1)
+	keyAsBytes, err := base64.StdEncoding.DecodeString(base64Key)
+	if err != nil {
+		logger.Printf("Error decoding key:", err)
+	}
+	return keyAsBytes
 }
 
 func main() {}
