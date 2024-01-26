@@ -18,7 +18,7 @@ component = "golang-explorer"
 route = "/internal/kv-explorer/..."
 
 [component.golang-explorer]
-source = "explorer/main.wasm"
+source = "explorer/spin-kv-explorer.wasm"
 allowed_outbound_hosts = ["redis://*:*", "mysql://*:*", "postgres://*:*"]
 key_value_stores = ["default"]
 
@@ -26,6 +26,6 @@ key_value_stores = ["default"]
 kv_credentials = "{{ kv_explorer_user }}:{{ kv_explorer_password }}"
 
 [component.golang-explorer.build]
-command = "tinygo build -target=wasi -gc=leaking -no-debug -o main.wasm main.go"
+command = "tinygo build -target=wasi -gc=leaking -no-debug -o spin-kv-explorer.wasm main.go"
 workdir = "explorer"
 watch = ["**/*.go", "go.mod", "index.html"]
