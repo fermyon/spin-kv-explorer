@@ -39,7 +39,7 @@ jobs:
 
       - name: generate checksums
         run: |
-          sha256sum explorer/main.wasm > checksums.txt
+          sha256sum explorer/spin-kv-explorer.wasm > checksums.txt
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -47,5 +47,5 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            explorer/main.wasm
+            explorer/spin-kv-explorer.wasm
             checksums.txt
