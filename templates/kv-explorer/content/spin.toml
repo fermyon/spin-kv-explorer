@@ -4,15 +4,21 @@ spin_manifest_version = 2
 name = "{{project-name}}"
 version = "0.1.0"
 
+[variables]
+kv_explorer_user = { required = true }
+kv_explorer_password = { required = true }
+
 [application.trigger.http]
 base = "/"
 
 [[trigger.http]]
-id = "trigger-kv-explorer"
-component = "kv-explorer"
+component = "{{project-name | kebab_case}}"
 route = "/internal/kv-explorer/..."
 
-[component.kv-explorer]
-source = { url = "https://github.com/fermyon/spin-kv-explorer/releases/download/v0.9.0/spin-kv-explorer.wasm", digest = "sha256:07f5f0b8514c14ae5830af0f21674fd28befee33cd7ca58bc0a68103829f2f9c" }
+[component.{{project-name | kebab_case}}]
+source = { url = "https://github.com/fermyon/spin-kv-explorer/releases/download/v0.10.0/spin-kv-explorer.wasm", digest = "sha256:65bc286f8315746d1beecd2430e178f539fa487ebf6520099daae09a35dbce1d" }
 allowed_outbound_hosts = ["redis://*:*", "mysql://*:*", "postgres://*:*"]
 key_value_stores = ["default"]
+
+[component.{{project-name | kebab_case}}.variables]
+{% raw %}kv_credentials = "{{ kv_explorer_user }}:{{ kv_explorer_password }}"{% endraw %} 
