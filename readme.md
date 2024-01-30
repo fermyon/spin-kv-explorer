@@ -22,21 +22,31 @@ Installed 1 template(s)
 Then, you can either create a new application, or add this component to your existing app:
 
 ```bash
-$ spin new kv-explorer
+$ spin new -t kv-explorer
 # OR
-$ spin add kv-explorer
+$ spin add -t kv-explorer
 ```
 
 This will create the following component in your `spin.toml`:
 
 ```toml
-[[component]]
-source = { url = "https://github.com/fermyon/spin-kv-explorer/releases/download/<latest-release>/spin-kv-explorer.wasm", digest = "sha256:aaa" }
-id = "kv-explorer"
+[[trigger.http]]
+component = "kv-explorer"
+route = "/internal/kv-explorer/..."
+
+[component.kv-explorer]
+source = { url = "https://github.com/fermyon/spin-kv-explorer/releases/download/v0.10.0/spin-kv-explorer.wasm", digest = "sha256:65bc286f8315746d1beecd2430e178f539fa487ebf6520099daae09a35dbce1d" }
+allowed_outbound_hosts = ["redis://*:*", "mysql://*:*", "postgres://*:*"]
 # add or remove stores you want to explore here
 key_value_stores = ["default"]
-[component.trigger]
-route = "/internal/kv-explorer/..."
+
+[component.kv-explorer.variables]
+kv_credentials = "{{ kv_explorer_user }}:{{ kv_explorer_password }}"
+
+[variables]
+kv_explorer_user = { required = true }
+kv_explorer_password = { required = true }
+
 ```
 
 You can now access the explorer in your browser at the route `/internal/kv-explorer`.
