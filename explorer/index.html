@@ -317,10 +317,13 @@
 					return response.json()
 				})
 				.then((data) => {
-					data.keys.sort().forEach((item) => {
-						insert(item);
-					});
+					if (data.keys && data.keys.length > 0) {
+						data.keys.sort().forEach((item) => {
+							insert(item);
+						});
+					}
 				});
+				
 		})
 
 		// Use this to generate unique and valid ids for keys
