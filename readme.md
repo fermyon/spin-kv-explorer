@@ -74,3 +74,87 @@ $ spin deploy --variable kv_explorer_user="some-username" --variable kv_explorer
 ```
 
 The explorer will use the config variables store to persist the credentials to access the UI and the API. If no values are set, a forbidden error is returned.
+
+## REST API
+
+In addition to the UI, the component exposes REST endpoints under the explorer route.
+If your route is `/internal/kv-explorer`, the API base is:
+
+```text
+/internal/kv-explorer/api
+```
+
+All API requests require HTTP Basic Auth unless `SPIN_APP_KV_SKIP_AUTH=1` is set.
+
+### Endpoints
+
+| Operation | Method | Path | Notes |
+| --- | --- | --- | --- |
+| List all pairs (keys) in a store | `GET` | `/api/stores/:store` | Returns keys in the store. |
+| Set/update a pair | `POST` | `/api/stores/:store` | Creates or overwrites a key/value pair. |
+| Get a single pair | `GET` | `/api/stores/:store/keys/:key` | `:key` must be safe-encoded (see below). |
+| Delete a single pair | `DELETE` | `/api/stores/:store/keys/:key` | `:key` must be safe-encoded (see below). |
+
+### Request/response shapes
+
+Set/update pair request body:
+
+```json
+{
+	"key": "my-key",
+	"value": "updated value"
+}
+```
+
+List response (`GET /api/stores/:store`):
+
+```json
+{
+	"store": "default",
+	"keys": ["my-key", "another-key"]
+}
+```
+
+Get response (`GET /api/stores/:store/keys/:key`):
+
+```json
+{
+	"store": "default",
+	"key": "bXkta2V5",
+	"value": "dXBkYXRlZCB2YWx1ZQ=="
+}
+```
+
+Notes:
+- JSON `value` in the get response is base64-encoded by the Go JSON encoder (because it is a byte array).
+- For `:key` path params, use the safe key format expected by this service: standard base64 of the raw key bytes, then replace `/` with `-`.
+
+### Examples
+
+```bash
+# List keys in a store
+curl -u "some-username:some-password" \
+	"http://127.0.0.1:3000/internal/kv-explorer/api/stores/default"
+
+# Set/update a key
+curl -u "some-username:some-password" \
+	-H "Content-Type: application/json" \
+	-X POST "http://127.0.0.1:3000/internal/kv-explorer/api/stores/default" \
+	-d '{"key":"my-key","value":"updated value"}'
+
+# Get one key ("my-key" => base64 "bXkta2V5")
+curl -u "some-username:some-password" \
+	"http://127.0.0.1:3000/internal/kv-explorer/api/stores/default/keys/bXkta2V5"
+
+# Delete one key
+curl -u "some-username:some-password" \
+	-X DELETE "http://127.0.0.1:3000/internal/kv-explorer/api/stores/default/keys/bXkta2V5"
+```
+
+### Status codes
+
+- `200 OK`: Successful list, set/update, get, or delete operation.
+- `400 Bad Request`: Malformed JSON body for set/update.
+- `401 Unauthorized`: Missing/invalid basic auth.
+- `404 Not Found`: Key not found for get/delete.
+- `500 Internal Server Error`: Store open/list/set failures.
