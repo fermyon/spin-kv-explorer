@@ -249,7 +249,7 @@ func GetCredentials() (string, string, error) {
 		return "", "", fmt.Errorf("cannot get credentials pair from config store: %v", err)
 	}
 
-	split := strings.Split(string(creds), ":")
+	split := strings.SplitN(string(creds), ":", 2)
 	return split[0], split[1], nil
 }
 
